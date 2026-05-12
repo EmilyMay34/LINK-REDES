@@ -7,7 +7,7 @@ CORS(app) # Esto permite que React se conecte sin errores
 
 # Usa tus credenciales de la Fase 2
 SUPABASE_URL = "https://fodbwpaeodiweaatzmxw.supabase.co" 
-SUPABASE_KEY = "sb_publishable_JK0VaywyUg5Q89xQRZQ6qQ_KD_UxdsH"
+SUPABASE_KEY = "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGJ3cGFlb2Rpd2VhYXR6bXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0Mjg3MDgsImV4cCI6MjA5NDAwNDcwOH0"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 @app.route('/api/datos', methods=['GET'])
