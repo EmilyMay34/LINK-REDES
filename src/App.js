@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 
 ChartJS.register(...registerables);
 
-// Configuración directa a tu base de datos de la captura
+// Conexión a tu Supabase (Datos de tu proyecto)
 const supabase = createClient(
   "https://fodbwpaeodiweaatzmxw.supabase.co", 
   "sb_publishable_JK0VaywyUg5Q89xQRZQ6qQ_KD_UxdsH"
@@ -23,13 +23,17 @@ const App = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase
-        .from('datos_central') // La tabla que vi en tu imagen
-        .select('*');
-      
-      if (!error && data) {
-        setDatos(data);
-        setLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from('datos_central')
+          .select('*');
+        
+        if (data) {
+          setDatos(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error:", err);
       }
     };
     fetchData();
@@ -37,18 +41,51 @@ const App = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filtrado de datos según tu captura
   const tcp = datos.filter(d => d.origen === 'TCP');
   const udp = datos.filter(d => d.origen === 'UDP');
 
-  // ... (Aquí sigue el resto de tu lógica de gráficas que ya tenías)
+  // Lógica de procesamiento de gráficas (TCP)
+  const catCount = tcp.reduce((a, d) => {
+    const p = d.contenido.split('|');
+    const cat = p[1]?.trim() || 'Varios';
+    return {...a, [cat]: (a[cat] || 0) + 1};
+  }, {});
+
+  const dataTCP = {
+    labels: Object.keys(catCount).slice(0, 5),
+    datasets: [{ label: 'Registros', data: Object.values(catCount).slice(0, 5), backgroundColor: [c.pri, c.sec, '#8b5cf6'], borderRadius: 10 }]
+  };
+
+  // Lógica de procesamiento de gráficas (UDP)
+  const temps = udp.slice(-10).map(d => parseFloat(d.contenido.match(/Temp:(\d+\.\d+)/)?.[1] || 0));
+  const dataUDP = {
+    labels: temps.map((_, i) => `T-${10-i}`),
+    datasets: [{ label: 'Temp °C', data: temps, borderColor: c.sec, backgroundColor: `${c.sec}22`, fill: true }]
+  };
+
+  if (loading) return <div style={{height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: c.bg, color: c.pri, fontWeight: 800}}>CONECTANDO A LA NUBE...</div>;
+
   return (
-    <div style={{backgroundColor: c.bg, color: c.txt, minHeight: '100vh', padding: '20px'}}>
-        <h1>Monitor de Red (Cloud)</h1>
-        {loading ? <p>Cargando datos desde Supabase...</p> : (
-            <p>Datos detectados: {datos.length} registros</p>
-        )}
-        {/* Aquí se renderizan tus gráficas */}
+    <div style={{backgroundColor: c.bg, color: c.txt, minHeight: '100vh', padding: '40px'}}>
+      <h1>Monitor de Red (Cloud Vercel)</h1>
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+        <div style={{background: c.card, padding: '20px', borderRadius: '15px'}}>
+           <h3>Tráfico TCP</h3>
+           <Bar data={dataTCP} />
+        </div>
+        <div style={{background: c.card, padding: '20px', borderRadius: '15px'}}>
+           <h3>Sensores UDP</h3>
+           <Line data={dataUDP} />
+        </div>
+      </div>
+      <div style={{marginTop: '20px'}}>
+        <h3>Logs Recientes (Supabase)</h3>
+        {datos.slice(-5).reverse().map(d => (
+          <div key={d.id} style={{borderBottom: `1px solid ${c.brd}`, padding: '10px'}}>
+            {d.origen} | {d.contenido}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
